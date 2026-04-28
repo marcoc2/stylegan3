@@ -1,4 +1,4 @@
-﻿# Copyright (c) 2021, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+# Copyright (c) 2021, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software, related documentation
@@ -45,12 +45,7 @@ def conv_transpose2d(input, weight, bias=None, stride=1, padding=0, output_paddi
 #----------------------------------------------------------------------------
 
 def _should_use_custom_op(input):
-    assert isinstance(input, torch.Tensor)
-    if (not enabled) or (not torch.backends.cudnn.enabled):
-        return False
-    if input.device.type != 'cuda':
-        return False
-    return True
+    return False
 
 def _tuple_of_ints(xs, ndim):
     xs = tuple(xs) if isinstance(xs, (tuple, list)) else (xs,) * ndim
@@ -167,10 +162,14 @@ def _conv2d_gradfix(transpose, weight_shape, stride, padding, output_padding, di
                 c = (b @ a.transpose(1, 2) if transpose else a @ b.transpose(1, 2)).reshape(weight_shape)
                 return c.contiguous(memory_format=(torch.channels_last if input.stride(1) == 1 else torch.contiguous_format))
 
-            # General case => cuDNN.
-            name = 'aten::cudnn_convolution_transpose_backward_weight' if transpose else 'aten::cudnn_convolution_backward_weight'
-            flags = [torch.backends.cudnn.benchmark, torch.backends.cudnn.deterministic, torch.backends.cudnn.allow_tf32]
-            return torch._C._jit_get_operation(name)(weight_shape, grad_output, input, padding, stride, dilation, groups, *flags)
+            # General case => PyTorch 2.0+ compatible.
+            dummy_weight = input.new_zeros(weight_shape)
+            _, grad_weight, _ = torch.ops.aten.convolution_backward(
+                grad_output.contiguous(), input.contiguous(), dummy_weight,
+                None, stride, padding, dilation, transpose, output_padding, groups,
+                [False, True, False],
+            )
+            return grad_weight.contiguous(memory_format=(torch.channels_last if input.stride(1) == 1 else torch.contiguous_format))
 
         @staticmethod
         def backward(ctx, grad2_grad_weight):

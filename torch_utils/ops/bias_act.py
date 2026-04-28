@@ -1,4 +1,4 @@
-﻿# Copyright (c) 2021, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+# Copyright (c) 2021, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software, related documentation
@@ -38,14 +38,17 @@ _null_tensor = torch.empty([0])
 def _init():
     global _plugin
     if _plugin is None:
-        _plugin = custom_ops.get_plugin(
-            module_name='bias_act_plugin',
-            sources=['bias_act.cpp', 'bias_act.cu'],
-            headers=['bias_act.h'],
-            source_dir=os.path.dirname(__file__),
-            extra_cuda_cflags=['--use_fast_math'],
-        )
-    return True
+        try:
+            _plugin = custom_ops.get_plugin(
+                module_name='bias_act_plugin',
+                sources=['bias_act.cpp', 'bias_act.cu'],
+                headers=['bias_act.h'],
+                source_dir=os.path.dirname(__file__),
+                extra_cuda_cflags=['--use_fast_math'],
+            )
+        except Exception:
+            _plugin = False
+    return bool(_plugin)
 
 #----------------------------------------------------------------------------
 

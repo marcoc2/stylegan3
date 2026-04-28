@@ -1,4 +1,4 @@
-﻿# Copyright (c) 2021, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+# Copyright (c) 2021, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software, related documentation
@@ -23,14 +23,17 @@ _plugin = None
 def _init():
     global _plugin
     if _plugin is None:
-        _plugin = custom_ops.get_plugin(
-            module_name='upfirdn2d_plugin',
-            sources=['upfirdn2d.cpp', 'upfirdn2d.cu'],
-            headers=['upfirdn2d.h'],
-            source_dir=os.path.dirname(__file__),
-            extra_cuda_cflags=['--use_fast_math'],
-        )
-    return True
+        try:
+            _plugin = custom_ops.get_plugin(
+                module_name='upfirdn2d_plugin',
+                sources=['upfirdn2d.cpp', 'upfirdn2d.cu'],
+                headers=['upfirdn2d.h'],
+                source_dir=os.path.dirname(__file__),
+                extra_cuda_cflags=['--use_fast_math'],
+            )
+        except Exception:
+            _plugin = False
+    return bool(_plugin)
 
 def _parse_scaling(scaling):
     if isinstance(scaling, int):

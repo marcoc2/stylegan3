@@ -129,8 +129,8 @@ def training_loop(
     torch.backends.cudnn.benchmark = cudnn_benchmark    # Improves training speed.
     torch.backends.cuda.matmul.allow_tf32 = False       # Improves numerical accuracy.
     torch.backends.cudnn.allow_tf32 = False             # Improves numerical accuracy.
-    conv2d_gradfix.enabled = True                       # Improves training speed.
-    grid_sample_gradfix.enabled = True                  # Avoids errors with the augmentation pipe.
+    conv2d_gradfix.enabled = False                      # Disabled: _should_use_custom_op sempre retorna False.
+    grid_sample_gradfix.enabled = True                  # Obrigatório: ADA augmentation precisa do backward de 2ª ordem.
 
     # Load training set.
     if rank == 0:
